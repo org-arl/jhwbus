@@ -1,83 +1,160 @@
-package org.arl.fjage.sentuator.devices
+package org.arl.jhwbus;
 
-import java.nio.ByteBuffer
+import java.util.*;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-class I2CDevice {
-    private static final int WORD_MAX = 65535
-    private static final int I2C_FLAGS_O_RDWR = 0x0002
+public final class I2CDevice {
 
-    static {
-        System.loadLibrary("fjagesentuatori2c")
+  // singleton management logic
+
+  private class Handle {
+    final String deviceID;
+    int fd = -1;
+    int users = 0;
+  }
+
+  private static Map<String,Handle> handles = new HashMap<>();
+
+  public static I2CDevice open(String deviceID, int addr) throws IOException {
+    if (addr < 0 || addr > 255) throw new IOException("Bad I2C address");
+    synchronized (handles) {
+      Handle handle = handles.get(deviceID);
+      if (handle == null) {
+        handle.deviceID = deviceID;
+        handle.fd = new I2COpen(deviceID);
+        if (handle.fd < 0) throw new IOException("Error opening I2C device " + deviceID + ": " + handle.fd);
+        handles.put(deviceID, handle);
+      }
+      handle.users++;
+      return new I2CDevice(handle, addr);
     }
+  }
 
-    private int fd
-    private final String deviceID
-    private final int addr
-
-    I2CDevice(String deviceID, int addr, int flags) throws FileNotFoundException {
-        this.fd = I2COpen(deviceID, addr, flags)
-        this.deviceID = deviceID
-        this.addr = addr
-        if (fd < 0) throw new FileNotFoundException("Error opening I2C device " + deviceID + " : " + fd)
+  public static void closeAll() {
+    synchronized (handles) {
+      for (Handle handle: handles.values()) {
+        synchronized (handle) {
+          handle.users = 0;
+          if (handle.fd >= 0) I2CClose(handle.fd);
+          handle.fd = -1;
+        }
+      }
+      handles.clear();
     }
+  }
 
-    I2CDevice(String deviceID, int addr) throws FileNotFoundException {
-        this.fd = I2COpen(deviceID, addr, I2C_FLAGS_O_RDWR)
-        this.deviceID = deviceID
-        if (fd < 0) throw new FileNotFoundException("Error opening I2C device " + deviceID + " : " + fd)
-        this.addr = addr
+  // instance attributes & methods
+
+  private Handle handle;
+  private final int addr;
+
+  private I2CDevice(Handle handle, int addr) {
+    this.handle = handle;
+    this.addr = addr;
+  }
+
+  public void close() {
+    if (handle == null) return;
+    if (handle.users <= 0 || handle.fd < 0) return;
+    synchronized (handle) {
+      handle.users--;
+      if (handle.users == 0) {
+        I2CClose(handle.fd);
+        handle.fd = -1;
+      }
     }
-
-    void close(){
-        I2CClose(this.fd)
+    synchronized (handles) {
+      handles.remove(handle.deviceID);
     }
+    handle = null;
+  }
 
-    int readByte(){
-        return I2CReadByte(this.fd)
+  public int readByte() throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CReadByte(handle.fd);
     }
+  }
 
-    int writeByte(byte data){
-        return I2CWriteByte(this.fd, data)
+  public int writeByte(byte data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteByte(handle.fd, data);
     }
+  }
 
-    int writeByteData(byte cmd, byte data){
-        return I2CWriteByteData(this.fd, cmd, data)
+  public int writeByteData(byte cmd, byte data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteByteData(handle.fd, cmd, data);
     }
+  }
 
-    int writeWordData(byte cmd, int data){
-        return I2CWriteWordData(this.fd, cmd, data)
+  public int writeWordData(byte cmd, int data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteWordData(handle.fd, cmd, data);
     }
+  }
 
-    int readByteData(byte cmd){
-        return I2CReadByteData(this.fd, cmd)
+  public int readByteData(byte cmd) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CReadByteData(handle.fd, cmd);
     }
+  }
 
-    int readWordData(byte cmd){
-        return I2CReadWordData(this.fd, cmd)
+  public int readWordData(byte cmd) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CReadWordData(handle.fd, cmd);
     }
+  }
 
-    static int ByteArrayToWord(byte [] bytes){
-        if (bytes.length != 2) throw new IllegalArgumentException("Can only convert 2 bytes to a 16bit word")
-        return ByteBuffer.wrap(bytes).getInt()
-    }
+  @Override
+  public void finalize() {
+    close();
+  }
 
-    static byte [] WordToByteArray(int word){
-        if (word > WORD_MAX || word < 0) throw new IllegalArgumentException("Word has to be between 0 and 65535")
-        return ByteBuffer.allocate(2).putInt(word).array()
-    }
+  @Override
+  String toString() {
+    if (handle == null || handle.fd < 0) return "I2CDevice: closed";
+    return "I2CDevice : " + handle.deviceID + ":" + String.format("%02X",addr);
+  }
 
-    @Override
-    String toString() {
-        return "I2CDevice : "+this.deviceID + " : " + this.addr != null ? String.format("0x%02X", this.addr) : ""
-    }
+  // Utility methods
 
-    private native int I2COpen(String dev, int addr, int flags)
-    private native int I2CReadByte(int fd)
-    private native int I2CWriteByte(int fd, int data)
-    private native int I2CWriteByteData(int fd, int cmd, int data)
-    private native int I2CWriteWordData(int fd, int cmd, int data)
-    private native int I2CReadByteData(int fd, int cmd)
-    private native int I2CReadWordData(int fd, int cmd)
-    private native void I2CClose(int fd)
+  public static int byteArrayToWord(byte [] bytes) {
+    if (bytes.length != 2) throw new IllegalArgumentException("Can only convert 2 bytes to a 16 bit word");
+    return ByteBuffer.wrap(bytes).getInt();
+  }
+
+  public static byte [] wordToByteArray(int word) {
+    if (word > 65535 || word < 0) throw new IllegalArgumentException("Word has to be between 0 and 65535");
+    return ByteBuffer.allocate(2).putInt(word).array();
+  }
+
+  // JNI interface
+
+  static {
+    System.loadLibrary("i2c");
+  }
+
+  private native int  I2COpen(String dev);
+  private native int  I2CSetAddr(int fd, int addr);
+  private native int  I2CReadByte(int fd);
+  private native int  I2CWriteByte(int fd, int data);
+  private native int  I2CWriteByteData(int fd, int cmd, int data);
+  private native int  I2CWriteWordData(int fd, int cmd, int data);
+  private native int  I2CReadByteData(int fd, int cmd);
+  private native int  I2CReadWordData(int fd, int cmd);
+  private native void I2CClose(int fd);
 
 }
