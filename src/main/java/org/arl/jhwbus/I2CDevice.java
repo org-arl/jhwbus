@@ -1,9 +1,22 @@
+/******************************************************************************
+
+Copyright (c) 2019, Mandar Chitre & Chinmay Pendharkar
+
+This file is part of fjage which is released under Simplified BSD License.
+See file LICENSE.txt or go to http://www.opensource.org/licenses/BSD-3-Clause
+for full license details.
+
+******************************************************************************/
+
 package org.arl.jhwbus;
 
 import java.util.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+/**
+ * I2C device access.
+ */
 public final class I2CDevice {
 
   // singleton management logic
@@ -16,6 +29,12 @@ public final class I2CDevice {
 
   private static Map<String,Handle> handles = new HashMap<>();
 
+  /**
+   * Open I2C device.
+   *
+   * @param deviceID I2C device file name.
+   * @param addr I2C address of device.
+   */
   public static I2CDevice open(String deviceID, int addr) throws IOException {
     if (addr < 0 || addr > 255) throw new IOException("Bad I2C address");
     synchronized (handles) {
@@ -31,6 +50,9 @@ public final class I2CDevice {
     }
   }
 
+  /**
+   * Close all open I2C devices.
+   */
   public static void closeAll() {
     synchronized (handles) {
       for (Handle handle: handles.values()) {
@@ -54,6 +76,9 @@ public final class I2CDevice {
     this.addr = addr;
   }
 
+  /**
+   * Close I2C device.
+   */
   public void close() {
     if (handle == null) return;
     if (handle.users <= 0 || handle.fd < 0) return;
@@ -70,6 +95,9 @@ public final class I2CDevice {
     handle = null;
   }
 
+  /**
+   * Read byte from I2C device.
+   */
   public int readByte() throws IOException {
     if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
     synchronized (handle) {
@@ -78,30 +106,9 @@ public final class I2CDevice {
     }
   }
 
-  public int writeByte(byte data) throws IOException {
-    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
-    synchronized (handle) {
-      I2CSetAddr(handle.fd, addr);
-      return I2CWriteByte(handle.fd, data);
-    }
-  }
-
-  public int writeByteData(byte cmd, byte data) throws IOException {
-    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
-    synchronized (handle) {
-      I2CSetAddr(handle.fd, addr);
-      return I2CWriteByteData(handle.fd, cmd, data);
-    }
-  }
-
-  public int writeWordData(byte cmd, int data) throws IOException {
-    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
-    synchronized (handle) {
-      I2CSetAddr(handle.fd, addr);
-      return I2CWriteWordData(handle.fd, cmd, data);
-    }
-  }
-
+  /**
+   * Send command and read data byte from I2C device.
+   */
   public int readByteData(byte cmd) throws IOException {
     if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
     synchronized (handle) {
@@ -110,11 +117,47 @@ public final class I2CDevice {
     }
   }
 
+  /**
+   * Send command and read data word from I2C device.
+   */
   public int readWordData(byte cmd) throws IOException {
     if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
     synchronized (handle) {
       I2CSetAddr(handle.fd, addr);
       return I2CReadWordData(handle.fd, cmd);
+    }
+  }
+
+  /**
+   * Write byte to I2C device.
+   */
+  public int writeByte(byte data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteByte(handle.fd, data);
+    }
+  }
+
+  /**
+   * Write command and data byte to I2C device.
+   */
+  public int writeByteData(byte cmd, byte data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteByteData(handle.fd, cmd, data);
+    }
+  }
+
+  /**
+   * Write command and data word to I2C device.
+   */
+  public int writeWordData(byte cmd, int data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteWordData(handle.fd, cmd, data);
     }
   }
 
@@ -131,11 +174,17 @@ public final class I2CDevice {
 
   // Utility methods
 
-  public static int byteArrayToWord(byte [] bytes) {
+  /**
+   * Convert 2-byte array to 16-bit word.
+   */
+  public static int byteArrayToWord(byte[] bytes) {
     if (bytes.length != 2) throw new IllegalArgumentException("Can only convert 2 bytes to a 16 bit word");
     return ByteBuffer.wrap(bytes).getInt();
   }
 
+  /**
+   * Convert 16-bit word to 2-byte array.
+   */
   public static byte [] wordToByteArray(int word) {
     if (word > 65535 || word < 0) throw new IllegalArgumentException("Word has to be between 0 and 65535");
     return ByteBuffer.allocate(2).putInt(word).array();
