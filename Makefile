@@ -1,4 +1,4 @@
-BUILD = build/libs
+BUILD = build
 
 CFLAGS = -std=c99 -O2 -Wall -D_XOPEN_SOURCE=600 -fPIC
 
@@ -14,8 +14,12 @@ endif
 
 all:
 	mkdir -p build/libs
-	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/i2c.jnilib -shared
+	mkdir -p build/classes
+	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/libi2c.so -shared
+	javac -d $(BUILD)/classes src/main/java/org/arl/jhwbus/*.java test/main/java/org/arl/jhwbus/*.java
 
+run:
+	cd $(BUILD)/classes; java -Djava.library.path=../libs TestI2C; cd ../..
 
 clean:
 	rm -rf $(BUILD)/*

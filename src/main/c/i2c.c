@@ -34,7 +34,7 @@ void log_info(const char *format, ...) {
 #endif
 }
 
-int Java_I2CDevice_I2COpen(JNIEnv* env, jobject obj, jstring dev, jint addr){
+int Java_org_arl_jhwbus_I2CDevice_I2COpen(JNIEnv* env, jobject obj, jstring dev, jint addr){
     int fd = 42;
     const char* devName = (*env)->GetStringUTFChars(env, dev, NULL) ;
     log_open("sentuator-i2c.txt");
@@ -45,7 +45,7 @@ int Java_I2CDevice_I2COpen(JNIEnv* env, jobject obj, jstring dev, jint addr){
     return fd;
 }
 
-int JAVA_I2CDevice_I2CSetAddr(JNIEnv* env, jobject obj, int fd, jint addr){
+int Java_org_arl_jhwbus_I2CDevice_I2CSetAddr(JNIEnv* env, jobject obj, jint fd, jint addr){
     log_info("Setting I2C addr %02X", addr);
     int rv = 0;
     #ifdef __linux__
@@ -54,7 +54,7 @@ int JAVA_I2CDevice_I2CSetAddr(JNIEnv* env, jobject obj, int fd, jint addr){
     return rv;
 }
 
-int Java_I2CDevice_I2CReadByte(JNIEnv* env, jobject obj, int fd){
+int Java_org_arl_jhwbus_I2CDevice_I2CReadByte(JNIEnv* env, jobject obj, jint fd){
     int rv = 0;
     log_info("Reading a byte");
     #ifdef __linux__
@@ -63,7 +63,7 @@ int Java_I2CDevice_I2CReadByte(JNIEnv* env, jobject obj, int fd){
     return rv;
 }
 
-int Java_I2CDevice_I2CWriteByte(JNIEnv* env, jobject obj, int fd, int data){
+int Java_org_arl_jhwbus_I2CDevice_I2CWriteByte(JNIEnv* env, jobject obj, jint fd, jint data){
     int rv = 0;
     log_info("Writing a byte %02X", data);
     #ifdef __linux__
@@ -72,7 +72,7 @@ int Java_I2CDevice_I2CWriteByte(JNIEnv* env, jobject obj, int fd, int data){
     return rv;
 }
 
-int Java_I2CDevice_I2CWriteByteData(JNIEnv* env, jobject obj, int fd, int cmd, int data){
+int Java_org_arl_jhwbus_I2CDevice_I2CWriteByteData(JNIEnv* env, jobject obj, jint fd, jint cmd, jint data){
     int rv = 0;
     log_info("Writing a command %02X and byte data %02X", cmd, data);
     #ifdef __linux__
@@ -81,7 +81,7 @@ int Java_I2CDevice_I2CWriteByteData(JNIEnv* env, jobject obj, int fd, int cmd, i
     return rv;
 }
 
-int Java_I2CDevice_I2CWriteWordData(JNIEnv* env, jobject obj, int fd, int cmd, int data){
+int Java_org_arl_jhwbus_I2CDevice_I2CWriteWordData(JNIEnv* env, jobject obj, jint fd, jint cmd, jint data){
     int rv = 0;
     log_info("Writing a command %02X and word data %04X", cmd, data);
     #ifdef __linux__
@@ -90,7 +90,7 @@ int Java_I2CDevice_I2CWriteWordData(JNIEnv* env, jobject obj, int fd, int cmd, i
     return rv;
 }
 
-int Java_I2CDevice_I2CReadByteData(JNIEnv* env, jobject obj, int fd, int cmd){
+int Java_org_arl_jhwbus_I2CDevice_I2CReadByteData(JNIEnv* env, jobject obj, jint fd, jint cmd){
     int rv = 0;
     log_info("Reading a byte data with the command %02X", cmd);
     #ifdef __linux__
@@ -99,7 +99,7 @@ int Java_I2CDevice_I2CReadByteData(JNIEnv* env, jobject obj, int fd, int cmd){
     return rv;
 }
 
-int Java_I2CDevice_I2CReadWordData(JNIEnv* env, jobject obj, int fd, int cmd){
+int Java_org_arl_jhwbus_I2CDevice_I2CReadWordData(JNIEnv* env, jobject obj, jint fd, jint cmd){
     int rv = 0;
     log_info("Reading a word data with the command %02X", cmd);
     #ifdef __linux__
@@ -108,7 +108,7 @@ int Java_I2CDevice_I2CReadWordData(JNIEnv* env, jobject obj, int fd, int cmd){
     return rv;
 }
 
-void Java_I2CDevice_I2CClose(JNIEnv* env, jobject obj, int fd){
+void Java_org_arl_jhwbus_I2CDevice_I2CClose(JNIEnv* env, jobject obj, jint fd){
     log_info("Closing the I2C Interface");
     #ifdef __linux__
         close(fd);

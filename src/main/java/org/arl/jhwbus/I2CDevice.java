@@ -8,10 +8,14 @@ public final class I2CDevice {
 
   // singleton management logic
 
-  private class Handle {
+  private static class Handle {
     final String deviceID;
     int fd = -1;
     int users = 0;
+
+    private Handle (String devID){
+      this.deviceID = devID;
+    }
   }
 
   private static Map<String,Handle> handles = new HashMap<>();
@@ -21,8 +25,8 @@ public final class I2CDevice {
     synchronized (handles) {
       Handle handle = handles.get(deviceID);
       if (handle == null) {
-        handle.deviceID = deviceID;
-        handle.fd = new I2COpen(deviceID);
+        handle = new Handle(deviceID);
+        handle.fd = I2COpen(deviceID);
         if (handle.fd < 0) throw new IOException("Error opening I2C device " + deviceID + ": " + handle.fd);
         handles.put(deviceID, handle);
       }
@@ -124,7 +128,7 @@ public final class I2CDevice {
   }
 
   @Override
-  String toString() {
+  public String toString() {
     if (handle == null || handle.fd < 0) return "I2CDevice: closed";
     return "I2CDevice : " + handle.deviceID + ":" + String.format("%02X",addr);
   }
@@ -147,7 +151,7 @@ public final class I2CDevice {
     System.loadLibrary("i2c");
   }
 
-  private native int  I2COpen(String dev);
+  private native static int  I2COpen(String dev);
   private native int  I2CSetAddr(int fd, int addr);
   private native int  I2CReadByte(int fd);
   private native int  I2CWriteByte(int fd, int data);
@@ -155,6 +159,6 @@ public final class I2CDevice {
   private native int  I2CWriteWordData(int fd, int cmd, int data);
   private native int  I2CReadByteData(int fd, int cmd);
   private native int  I2CReadWordData(int fd, int cmd);
-  private native void I2CClose(int fd);
+  private native static  void I2CClose(int fd);
 
 }
