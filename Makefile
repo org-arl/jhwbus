@@ -16,9 +16,9 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 all:
-	mkdir -p build/libs
+	mkdir -p build/libs/native
 	mkdir -p build/classes
-	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/$(OUTFILE) -shared
+	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/native/$(OUTFILE) -shared
 	javac -d $(BUILD)/classes src/main/java/org/arl/jhwbus/*.java
 
 test: all
@@ -28,8 +28,7 @@ run: test
 	MS
 
 jar: all
-	jar cf build/jhwbus-$(VERSION).jar -C build/classes . -C build libs/libi2c.so
-	echo "Created Jar : build/jhwbus-$(VERSION).jar"
+	jar cf build/libs/jhwbus-$(VERSION).jar -C build/classes . -C build libs/native/$(OUTFILE)
 
 clean:
 	rm -rf $(BUILD)/*

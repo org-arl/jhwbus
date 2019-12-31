@@ -235,7 +235,8 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String libPath = "/libs/libi2c.so";
+    String ext = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0 ? ".dylib" : ".so";
+    String libPath = "/libs/native/libi2c" + ext;
     String[] parts = libPath.split("/");
     String libName = (parts.length > 1) ? parts[parts.length - 1] : null;
     String libShortName = libName.substring(3, libName.length()-3);
