@@ -10,6 +10,11 @@ for full license details.
 
 package org.arl.jhwbus;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -165,6 +170,39 @@ public final class I2CDevice {
     }
   }
 
+  /**
+   * Write an array of data bytes.
+   */
+  public int write(byte[] data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWrite(handle.fd, data);
+    }
+  }
+
+  /**
+   * Read an array of data bytes
+   */
+  public int read(byte[] data) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CRead(handle.fd, data);
+    }
+  }
+
+  /**
+   * Write an array of data bytes and read an array of bytes immediately after
+   */
+  public int writeRead(byte[] wdata, byte [] rdata) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CWriteRead(handle.fd, wdata, rdata);
+    }
+  }
+
   @Override
   public void finalize() {
     close();
@@ -197,7 +235,48 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    System.loadLibrary("i2c");
+    String libPath = "/libs/libi2c.so";
+    String[] parts = libPath.split("/");
+    String libName = (parts.length > 1) ? parts[parts.length - 1] : null;
+    String libShortName = libName.substring(3, libName.length()-3);
+
+    if (libName == null || libName.length() < 3 || libShortName.length() < 1) {
+      throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
+    }
+    try {
+      // Check if native lib exists in classpath.
+      System.loadLibrary(libShortName);
+    } catch (UnsatisfiedLinkError e) {
+      // Else use the one bundled in the jar
+      try {
+        // Create a temp dir
+        File temporaryDir = new File(System.getProperty("java.io.tmpdir"), "jhwbus-" + System.nanoTime());
+        if (!temporaryDir.mkdir()) throw new IOException("Failed to create temp directory " + temporaryDir.getName());
+        temporaryDir.deleteOnExit();
+
+        // Extract the file to the temp dir
+        File temp = new File(temporaryDir, libName);
+        try (InputStream is = I2CDevice.class.getResourceAsStream(libPath)) {
+          Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ie) {
+          temp.delete();
+          throw e;
+        } catch (NullPointerException ne) {
+          temp.delete();
+          throw new FileNotFoundException("File " + libPath + " was not found inside JAR.");
+        }
+
+        // Load the file
+        try {
+          System.load(temp.getAbsolutePath());
+        } finally {
+          temp.delete();
+        }
+
+      } catch (IOException ie) {
+        throw new RuntimeException(ie);
+      }
+    }
   }
 
   private native static int  I2COpen(String dev);
@@ -208,6 +287,9 @@ public final class I2CDevice {
   private native int  I2CWriteWordData(int fd, int cmd, int data);
   private native int  I2CReadByteData(int fd, int cmd);
   private native int  I2CReadWordData(int fd, int cmd);
+  private native int  I2CRead(int fd, byte [] data);
+  private native int  I2CWrite(int fd, byte [] data);
+  private native int  I2CWriteRead(int fd, byte [] wdata, byte [] rdata);
   private native static  void I2CClose(int fd);
 
 }

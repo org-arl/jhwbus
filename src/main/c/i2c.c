@@ -108,6 +108,47 @@ int Java_org_arl_jhwbus_I2CDevice_I2CReadWordData(JNIEnv* env, jobject obj, jint
     return rv;
 }
 
+int Java_org_arl_jhwbus_I2CDevice_I2CRead(JNIEnv* env, jobject obj, jint fd, jbyteArray arr){
+    jsize len = (*env)->GetArrayLength(env, arr);
+    jbyte *rbuf = (*env)->GetByteArrayElements(env, arr, 0);
+    log_info("Reading %d bytes of data", len);
+    int rv = 0;
+    #ifdef __linux__
+        rv = read(fd, rbuf, len);
+    #endif
+    (*env)->ReleaseByteArrayElements(env, arr, rbuf, 0);
+    return rv;
+}
+
+int Java_org_arl_jhwbus_I2CDevice_I2CWrite(JNIEnv* env, jobject obj, jint fd, jbyteArray arr){
+    jsize len = (*env)->GetArrayLength(env, arr);
+    jbyte *wbuf = (*env)->GetByteArrayElements(env, arr, 0);
+    log_info("Writing %d bytes of data", len);
+    int rv = 0;
+    #ifdef __linux__
+        rv = write(fd, wbuf, len);
+    #endif
+    (*env)->ReleaseByteArrayElements(env, arr, wbuf, 0);
+    return rv;
+}
+
+int Java_org_arl_jhwbus_I2CDevice_I2CWriteRead(JNIEnv* env, jobject obj, jint fd, jbyteArray warr, jbyteArray rarr){
+    jsize wlen = (*env)->GetArrayLength(env, warr);
+    jbyte *wbuf = (*env)->GetByteArrayElements(env, warr, 0);
+    jsize rlen = (*env)->GetArrayLength(env, rarr);
+    jbyte *rbuf = (*env)->GetByteArrayElements(env, rarr, 0);
+    log_info("Writing %d bytes of data, reading %d bytes of data", wlen, rlen);
+    int rv = 0;
+    #ifdef __linux__
+        rv = write(fd, wbuf, wlen);
+        if (rv == wlen) rv = read(fd, rbuf, rlen);
+        else rv = -1;
+    #endif
+    (*env)->ReleaseByteArrayElements(env, warr, wbuf, 0);
+    (*env)->ReleaseByteArrayElements(env, rarr, rbuf, 0);
+    return rv;
+}
+
 void Java_org_arl_jhwbus_I2CDevice_I2CClose(JNIEnv* env, jobject obj, jint fd){
     log_info("Closing the I2C Interface");
     #ifdef __linux__
