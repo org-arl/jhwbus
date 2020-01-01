@@ -1,4 +1,4 @@
-VERSION = 1.0.0
+VERSION = 1.0.1
 BUILD = build
 CFLAGS = -std=c99 -O2 -Wall -D_XOPEN_SOURCE=600 -fPIC
 LIB_PATH = -I/usr/local/include -I${JAVA_HOME}/include

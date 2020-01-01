@@ -44,8 +44,8 @@ public final class I2CDevice {
    * @param deviceID I2C device file name.
    * @param addr I2C address of device.
    */
-  public static I2CDevice open(String deviceID, int addr) throws IOException {
-    if (addr < 0 || addr > 255) throw new IOException("Bad I2C address");
+  public static I2CDevice open(String deviceID, byte addr) throws IOException {
+    if (addr < 0 || addr > 128) throw new IOException("Bad I2C address");
     synchronized (handles) {
       Handle handle = handles.get(deviceID);
       if (handle == null) {
@@ -78,9 +78,9 @@ public final class I2CDevice {
   // instance attributes & methods
 
   private Handle handle;
-  private final int addr;
+  private final byte addr;
 
-  private I2CDevice(Handle handle, int addr) {
+  private I2CDevice(Handle handle, byte addr) {
     this.handle = handle;
     this.addr = addr;
   }
@@ -281,13 +281,13 @@ public final class I2CDevice {
   }
 
   private native static int  I2COpen(String dev);
-  private native int  I2CSetAddr(int fd, int addr);
+  private native int  I2CSetAddr(int fd, byte addr);
   private native int  I2CReadByte(int fd);
-  private native int  I2CWriteByte(int fd, int data);
-  private native int  I2CWriteByteData(int fd, int cmd, int data);
-  private native int  I2CWriteWordData(int fd, int cmd, int data);
-  private native int  I2CReadByteData(int fd, int cmd);
-  private native int  I2CReadWordData(int fd, int cmd);
+  private native int  I2CWriteByte(int fd, byte data);
+  private native int  I2CWriteByteData(int fd, byte cmd, byte data);
+  private native int  I2CWriteWordData(int fd, byte cmd, int data);
+  private native int  I2CReadByteData(int fd, byte cmd);
+  private native int  I2CReadWordData(int fd, byte cmd);
   private native int  I2CRead(int fd, byte [] data);
   private native int  I2CWrite(int fd, byte [] data);
   private native int  I2CWriteRead(int fd, byte [] wdata, byte [] rdata);
