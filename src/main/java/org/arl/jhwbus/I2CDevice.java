@@ -27,12 +27,12 @@ public final class I2CDevice {
   // singleton management logic
 
   private static class Handle {
-    final String deviceID;
+    final String dev;
     int fd = -1;
     int users = 0;
 
-    private Handle (String devID){
-      this.deviceID = devID;
+    private Handle (String dev){
+      this.dev = dev;
     }
   }
 
@@ -41,18 +41,18 @@ public final class I2CDevice {
   /**
    * Open I2C device.
    *
-   * @param deviceID I2C device file name.
+   * @param dev I2C device file name.
    * @param addr I2C address of device.
    */
-  public static I2CDevice open(String deviceID, byte addr) throws IOException {
+  public static I2CDevice open(String dev, byte addr) throws IOException {
     if (addr < 0 || addr > 128) throw new IOException("Bad I2C address");
     synchronized (handles) {
-      Handle handle = handles.get(deviceID);
+      Handle handle = handles.get(dev);
       if (handle == null) {
-        handle = new Handle(deviceID);
-        handle.fd = I2COpen(deviceID);
-        if (handle.fd < 0) throw new IOException("Error opening I2C device " + deviceID + ": " + handle.fd);
-        handles.put(deviceID, handle);
+        handle = new Handle(dev);
+        handle.fd = I2COpen(dev);
+        if (handle.fd < 0) throw new IOException("Error opening I2C device " + dev + ": " + handle.fd);
+        handles.put(dev, handle);
       }
       handle.users++;
       return new I2CDevice(handle, addr);
@@ -99,7 +99,7 @@ public final class I2CDevice {
       }
     }
     synchronized (handles) {
-      handles.remove(handle.deviceID);
+      handles.remove(handle.dev);
     }
     handle = null;
   }
@@ -211,7 +211,7 @@ public final class I2CDevice {
   @Override
   public String toString() {
     if (handle == null || handle.fd < 0) return "I2CDevice: closed";
-    return "I2CDevice : " + handle.deviceID + ":" + String.format("%02X",addr);
+    return "I2CDevice : " + handle.dev + ":" + String.format("%02X",addr);
   }
 
   // Utility methods
