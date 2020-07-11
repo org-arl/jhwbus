@@ -7,7 +7,7 @@ public class TestI2C
 	{
 		System.out.println("Hello World");
 		try {
-			I2CDevice ms5837 = I2CDevice.open("/dev/i2c-1", 0x60);
+			I2CDevice ms5837 = I2CDevice.open("/dev/i2c-1", (byte) 0x60);
 			System.out.println(ms5837);
 			System.out.println(String.format("0x%04X",ms5837.readByteData((byte)0x03)));
 			ms5837.close();
