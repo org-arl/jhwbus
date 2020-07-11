@@ -12,12 +12,13 @@ package org.arl.jhwbus;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.*;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * I2C device access.
@@ -36,7 +37,7 @@ public final class I2CDevice {
     }
   }
 
-  private static Map<String,Handle> handles = new HashMap<>();
+  private static final Map<String,Handle> handles = new HashMap<>();
 
   /**
    * Open I2C device.
@@ -45,7 +46,7 @@ public final class I2CDevice {
    * @param addr I2C address of device.
    */
   public static I2CDevice open(String dev, byte addr) throws IOException {
-    if (addr < 0 || addr > 128) throw new IOException("Bad I2C address");
+    if (addr < 0) throw new IOException("Bad I2C address");
     synchronized (handles) {
       Handle handle = handles.get(dev);
       if (handle == null) {
@@ -235,13 +236,18 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String ext = System.getProperty("os.name").toLowerCase().indexOf("mac") >= 0 ? ".dylib" : ".so";
+    String ext = System.getProperty("os.name").toLowerCase().contains("mac") ? ".dylib" : ".so";
     String libPath = "/libs/native/libi2c" + ext;
     String[] parts = libPath.split("/");
     String libName = (parts.length > 1) ? parts[parts.length - 1] : null;
+
+    if (libName == null || libName.length() < 3 ) {
+      throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
+    }
+
     String libShortName = libName.substring(3, libName.length()-3);
 
-    if (libName == null || libName.length() < 3 || libShortName.length() < 1) {
+    if (libShortName.length() < 1){
       throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
     }
     try {
