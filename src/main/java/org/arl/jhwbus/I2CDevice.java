@@ -241,15 +241,12 @@ public final class I2CDevice {
     String[] parts = libPath.split("/");
     String libName = (parts.length > 1) ? parts[parts.length - 1] : null;
 
-    if (libName == null || libName.length() < 3 ) {
-      throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
+    if (libName == null || libName.length() < 4 ) {
+      throw new IllegalArgumentException("The filename has to be at least 4 characters long.");
     }
 
     String libShortName = libName.substring(3, libName.length()-3);
 
-    if (libShortName.length() < 1){
-      throw new IllegalArgumentException("The filename has to be at least 3 characters long.");
-    }
     try {
       // Check if native lib exists in classpath.
       System.loadLibrary(libShortName);
