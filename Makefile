@@ -28,7 +28,7 @@ run: test
 	MS
 
 jar: all
-	jar cf build/libs/jhwbus-$(VERSION).jar -C build/classes . -C build libs/native/$(OUTFILE)
+	jar cf build/libs/jhwbus-$(UNAME_S)-$(VERSION).jar -C build/classes . -C build libs/native/$(OUTFILE)
 
 clean:
 	rm -rf $(BUILD)/*
