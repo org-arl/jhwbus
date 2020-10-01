@@ -3,12 +3,12 @@ BUILD = build
 CFLAGS = -std=c99 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -D_XOPEN_SOURCE=600 -fPIC
 LIB_PATH = -I/usr/local/include -I${JAVA_HOME}/include
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
+UNAME_S := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ifeq ($(UNAME_S),linux)
 	LIB_PATH += -I${JAVA_HOME}/include/linux
 	OUTFILE = libi2c.so
 endif
-ifeq ($(UNAME_S),Darwin)
+ifeq ($(UNAME_S),darwin)
 
 	LIB_PATH += -I${JAVA_HOME}/include/darwin
 	OUTFILE = libi2c.dylib
