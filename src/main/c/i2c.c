@@ -9,11 +9,13 @@
     #include <unistd.h>
 #endif
 
+#ifdef DEBUG
 static inline uint64_t current_time_ms() {
   struct timeval te;
   gettimeofday(&te, NULL);
   return te.tv_sec*1000ll + te.tv_usec/1000;
 }
+#endif
 
 int log_open(const char* filename) {
 #ifdef DEBUG
