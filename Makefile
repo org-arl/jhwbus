@@ -21,7 +21,7 @@ endif
 all:
 	mkdir -p build/libs/native
 	mkdir -p build/classes
-	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/native/$(OUTFILE) -shared
+	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/native/$(OUTFILE) -shared -li2c
 	javac -d $(BUILD)/classes src/main/java/org/arl/jhwbus/*.java
 
 test: all
