@@ -6,11 +6,13 @@ LIB_PATH = -I/usr/local/include -I${JAVA_HOME}/include
 UNAME_S := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 ifeq ($(UNAME_S),linux)
 	LIB_PATH += -I${JAVA_HOME}/include/linux
+	LFLAGS = -li2c
 	OUTFILE = libi2c.so
 endif
-ifeq ($(UNAME_S),darwin)
 
+ifeq ($(UNAME_S),darwin)
 	LIB_PATH += -I${JAVA_HOME}/include/darwin
+	LFLAGS = 
 	OUTFILE = libi2c.dylib
 endif
 
@@ -21,7 +23,7 @@ endif
 all:
 	mkdir -p build/libs/native
 	mkdir -p build/classes
-	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/native/$(OUTFILE) -shared -li2c
+	gcc $(CFLAGS) $(LIB_PATH) src/main/c/i2c.c -o $(BUILD)/libs/native/$(OUTFILE) -shared $(LFLAGS)
 	javac -d $(BUILD)/classes src/main/java/org/arl/jhwbus/*.java
 
 test: all
