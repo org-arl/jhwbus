@@ -4,16 +4,17 @@ CFLAGS = -std=c99 -O2 -Wall -Wextra -Werror -Wno-unused-parameter -D_XOPEN_SOURC
 LIB_PATH = -I/usr/local/include -I${JAVA_HOME}/include
 
 UNAME_S := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+UNAME_M := $(shell uname -m | tr '[:upper:]' '[:lower:]')
 ifeq ($(UNAME_S),linux)
 	LIB_PATH += -I${JAVA_HOME}/include/linux
 	LFLAGS = -li2c
-	OUTFILE = libi2c.so
+	OUTFILE = libi2c-${UNAME_M}.so
 endif
 
 ifeq ($(UNAME_S),darwin)
 	LIB_PATH += -I${JAVA_HOME}/include/darwin
 	LFLAGS = 
-	OUTFILE = libi2c.dylib
+	OUTFILE = libi2c-${UNAME_M}.dylib
 endif
 
 ifdef DEBUG

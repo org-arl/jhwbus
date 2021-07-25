@@ -237,16 +237,11 @@ public final class I2CDevice {
 
   static {
     String ext = System.getProperty("os.name").toLowerCase().contains("mac") ? ".dylib" : ".so";
-    String libPath = "/libs/native/libi2c" + ext;
-    String[] parts = libPath.split("/");
-    String libName = (parts.length > 1) ? parts[parts.length - 1] : null;
-
-    if (libName == null || libName.length() < 4 ) {
-      throw new IllegalArgumentException("The filename has to be at least 4 characters long.");
-    }
-
-    String libShortName = libName.substring(3, libName.length()-3);
-
+    String arch = System.getProperty("os.arch").toLowerCase();
+    String libShortName = "i2c-"+arch;
+    String libName = "lib"+libShortName+ext;
+    String libPath = "/libs/native/"+libName;
+    
     try {
       // Check if native lib exists in classpath.
       System.loadLibrary(libShortName);
