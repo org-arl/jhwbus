@@ -236,15 +236,11 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String ext = System.getProperty("os.name").toLowerCase().contains("mac") ? ".dylib" : ".so";
-    String arch = System.getProperty("os.arch").toLowerCase();
-    String libShortName = "i2c-"+arch;
-    String libName = "lib"+libShortName+ext;
-    String libPath = "/libs/native/"+libName;
-    
+    String libName = "libjhwbus";
+
     try {
       // Check if native lib exists in classpath.
-      System.loadLibrary(libShortName);
+      System.loadLibrary(libName);
     } catch (UnsatisfiedLinkError e) {
       // Else use the one bundled in the jar
       try {
@@ -255,14 +251,14 @@ public final class I2CDevice {
 
         // Extract the file to the temp dir
         File temp = new File(temporaryDir, libName);
-        try (InputStream is = I2CDevice.class.getResourceAsStream(libPath)) {
+        try (InputStream is = I2CDevice.class.getResourceAsStream(libName)) {
           Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ie) {
           temp.delete();
           throw e;
         } catch (NullPointerException ne) {
           temp.delete();
-          throw new FileNotFoundException("File " + libPath + " was not found inside JAR.");
+          throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
         }
 
         // Load the file

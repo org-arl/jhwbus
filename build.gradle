@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'c'
+}
+
+group 'org.arl.jhwbus'
+version '1.1.1'
+
+final File javaHome = new File(System.getProperty('java.home'))
+final String JNI_INCLUDE_DIR = new File(javaHome, 'include').isDirectory()
+        ? new File(javaHome, 'include').getPath() // JDK
+        : new File(javaHome, '../include').getPath() // for JRE inside JDK
+
+model {
+    components {
+        jhwbus(NativeLibrarySpec){
+            binaries.all {
+                if (System.properties['os.name'].equals('Mac OS X')){
+                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+                            '-I', '/usr/local/include',
+                            '-I', JNI_INCLUDE_DIR,
+                            '-I', JNI_INCLUDE_DIR + '/darwin'
+
+                } else {
+                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+                            '-I', '/usr/local/include',
+                            '-I', JNI_INCLUDE_DIR,
+                            '-I', JNI_INCLUDE_DIR + '/linux'
+                    linker.args "-li2c"
+                }
+
+            }
+            sources {
+                c {
+                    source {
+                        srcDir "src/main"
+                        include "**/*.c"
+                    }
+                }
+            }
+        }
+    }
+}
+
+jar {
+    dependsOn 'jhwbusSharedLibrary'
+    from('build/libs/jhwbus/shared'){
+        include("*")
+    }
+}
