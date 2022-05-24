@@ -1,6 +1,6 @@
 plugins {
-    id 'java'
     id 'c'
+    id 'groovy'
 }
 
 group 'org.arl.jhwbus'
@@ -49,4 +49,23 @@ jar {
     from('build/libs/jhwbus/shared'){
         include("*")
     }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.8'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+    }
+    systemProperty "java.library.path", "${projectDir}/build/libs/jhwbus/shared"
 }

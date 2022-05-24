@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -236,13 +238,12 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String libName = "libjhwbus";
+    String libName = "jhwbus";
 
     try {
       // Check if native lib exists in classpath.
       System.loadLibrary(libName);
     } catch (UnsatisfiedLinkError e) {
-      // Else use the one bundled in the jar
       try {
         // Create a temp dir
         File temporaryDir = new File(System.getProperty("java.io.tmpdir"), "jhwbus-" + System.nanoTime());
