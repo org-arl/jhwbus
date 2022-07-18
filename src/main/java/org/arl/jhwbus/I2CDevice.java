@@ -14,18 +14,20 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.security.AccessControlException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * I2C device access.
  */
 public final class I2CDevice {
+
+  private static Logger log = Logger.getLogger("org.arl.jhwbus");
 
   // singleton management logic
 
@@ -238,12 +240,16 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String libName = "jhwbus";
+    String libName = "libjhwbus";
+
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("linux")) libName += ".so";
+    else if (os.contains("mac")) libName += ".dylib";
 
     try {
       // Check if native lib exists in classpath.
       System.loadLibrary(libName);
-    } catch (UnsatisfiedLinkError e) {
+    } catch (Throwable e) {
       try {
         // Create a temp dir
         File temporaryDir = new File(System.getProperty("java.io.tmpdir"), "jhwbus-" + System.nanoTime());
@@ -252,12 +258,16 @@ public final class I2CDevice {
 
         // Extract the file to the temp dir
         File temp = new File(temporaryDir, libName);
-        try (InputStream is = I2CDevice.class.getResourceAsStream(libName)) {
+        try (InputStream is = I2CDevice.class.getResourceAsStream("/"+libName)) {
+          if (is == null){
+            temp.delete();
+            throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
+          }
           Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ie) {
           temp.delete();
           throw e;
-        } catch (NullPointerException ne) {
+        } catch (Exception ne) {
           temp.delete();
           throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
         }
@@ -269,7 +279,7 @@ public final class I2CDevice {
           temp.delete();
         }
 
-      } catch (IOException ie) {
+      } catch (Exception ie) {
         throw new RuntimeException(ie);
       }
     }
