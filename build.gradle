@@ -64,8 +64,9 @@ model {
     }
 }
 
+
 sourceSets.main.resources.srcDirs += ["$buildDir/libs/jhwbus/shared"]
-processResources.dependsOn 'jhwbusSharedLibrary'
+tasks.matching{ it.name.contains('jhwbusSharedLibrary') }.whenTaskAdded {tasks.processResources.dependsOn it }
 
 repositories {
     mavenCentral()
