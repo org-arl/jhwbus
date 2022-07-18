@@ -66,6 +66,8 @@ model {
 
 
 sourceSets.main.resources.srcDirs += ["$buildDir/libs/jhwbus/shared"]
+
+// Hack to add the dependency such that it works with source dependency/composite builds
 tasks.matching{ it.name.contains('jhwbusSharedLibrary') }.whenTaskAdded {tasks.processResources.dependsOn it }
 
 repositories {
