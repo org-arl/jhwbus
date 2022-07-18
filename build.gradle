@@ -1,0 +1,90 @@
+plugins {
+    id 'c'
+    id 'groovy'
+}
+
+group 'org.arl.jhwbus'
+version '1.1.1'
+
+defaultTasks 'jar'
+
+final File javaHome = new File(System.getProperty('java.home'))
+final String JNI_INCLUDE_DIR = new File(javaHome, 'include').isDirectory()
+        ? new File(javaHome, 'include').getPath() // JDK
+        : new File(javaHome, '../include').getPath() // for JRE inside JDK
+
+model {
+    platforms {
+        x86_64 {
+            architecture 'x86_64'
+        }
+        linux_aarch64 {
+            operatingSystem "linux"
+            architecture "arm64"
+        }
+    }
+
+    toolChains {
+        clang(Clang)
+        gcc(Gcc) {
+            target("linux_aarch64")
+            target("linux_arm-v7")
+        }
+    }
+
+    components {
+        jhwbus(NativeLibrarySpec){
+            binaries.all {
+                if (System.properties['os.name'].equals('Mac OS X')){
+                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+                            '-I', '/usr/local/include',
+                            '-I', JNI_INCLUDE_DIR,
+                            '-I', JNI_INCLUDE_DIR + '/darwin'
+
+                } else {
+                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+                            '-I', '/usr/local/include',
+                            '-I', JNI_INCLUDE_DIR,
+                            '-I', JNI_INCLUDE_DIR + '/linux'
+                    linker.args "-li2c"
+                }
+
+            }
+            sources {
+                c {
+                    source {
+                        srcDir "src/main"
+                        include "**/*.c"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+sourceSets.main.resources.srcDirs += ["$buildDir/libs/jhwbus/shared"]
+
+// Hack to add the dependency such that it works with source dependency/composite builds
+tasks.matching{ it.name.contains('jhwbusSharedLibrary') }.whenTaskAdded {tasks.processResources.dependsOn it }
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.8'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+    }
+    systemProperty "java.library.path", "${projectDir}/build/libs/jhwbus/shared"
+}

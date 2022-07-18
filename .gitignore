@@ -27,3 +27,6 @@ build/**
 
 # sftp
 sftp-config.json
+
+#gradle
+.gradle
