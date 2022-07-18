@@ -44,7 +44,7 @@ In `build.gradle` :
 ```groovy
  implementation('org.arl.jhwbus:jhwbus:1.1.1') {
     version {
-        branch = 'gradle'
+        branch = 'master'
     }
 }
 ```
