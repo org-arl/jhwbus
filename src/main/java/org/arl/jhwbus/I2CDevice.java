@@ -210,6 +210,17 @@ public final class I2CDevice {
     }
   }
 
+  /**
+   * Send command and read a block of bytes from I2C device.
+   */
+  public int readBlock(byte cmd, byte [] rdata) throws IOException {
+    if (handle == null || handle.fd < 0) throw new IOException("I2C device already closed");
+    synchronized (handle) {
+      I2CSetAddr(handle.fd, addr);
+      return I2CReadBlockData(handle.fd, cmd, rdata);
+    }
+  }
+
   @Override
   public void finalize() {
     close();
@@ -301,6 +312,7 @@ public final class I2CDevice {
   private native int  I2CRead(int fd, byte [] data);
   private native int  I2CWrite(int fd, byte [] data);
   private native int  I2CWriteRead(int fd, byte [] wdata, byte [] rdata);
+  private native int I2CReadBlockData(int fd, byte cmd,  byte [] rdata);
   private native static  void I2CClose(int fd);
 
 }

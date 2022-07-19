@@ -111,6 +111,18 @@ int Java_org_arl_jhwbus_I2CDevice_I2CReadWordData(JNIEnv* env, jobject obj, jint
     return rv;
 }
 
+int Java_org_arl_jhwbus_I2CDevice_I2CReadBlockData(JNIEnv* env, jobject obj, jint fd, jbyte cmd, jbyteArray arr){
+    jsize len = (*env)->GetArrayLength(env, arr);
+    jbyte *rbuf = (*env)->GetByteArrayElements(env, arr, 0);
+    int rv = 0;
+    log_info("Reading up to %d bytes of data with the command 0x%02X", len, cmd);
+    #ifdef __linux__
+        rv = i2c_smbus_read_block_data(fd, cmd, rbuf);
+    #endif
+    (*env)->ReleaseByteArrayElements(env, arr, rbuf, 0);
+    return rv;
+}
+
 int Java_org_arl_jhwbus_I2CDevice_I2CRead(JNIEnv* env, jobject obj, jint fd, jbyteArray arr){
     jsize len = (*env)->GetArrayLength(env, arr);
     jbyte *rbuf = (*env)->GetByteArrayElements(env, arr, 0);
