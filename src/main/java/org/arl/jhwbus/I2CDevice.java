@@ -18,6 +18,8 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.AccessControlException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -240,49 +242,52 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String libName = "libjhwbus";
-
+    String libSuffix = "";
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("linux")) libName += ".so";
-    else if (os.contains("mac")) libName += ".dylib";
+    if (os.contains("linux")) libSuffix += ".so";
+    else if (os.contains("mac")) libSuffix += ".dylib";
 
-    try {
-      // Check if native lib exists in classpath.
-      System.loadLibrary(libName);
-    } catch (Throwable e) {
-      try {
-        // Create a temp dir
-        File temporaryDir = new File(System.getProperty("java.io.tmpdir"), "jhwbus-" + System.nanoTime());
-        if (!temporaryDir.mkdir()) throw new IOException("Failed to create temp directory " + temporaryDir.getName());
-        temporaryDir.deleteOnExit();
+    String libName = "libjhwbus" + libSuffix;
 
-        // Extract the file to the temp dir
-        File temp = new File(temporaryDir, libName);
-        try (InputStream is = I2CDevice.class.getResourceAsStream("/"+libName)) {
-          if (is == null){
-            temp.delete();
-            throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
-          }
-          Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ie) {
-          temp.delete();
-          throw e;
-        } catch (Exception ne) {
-          temp.delete();
-          throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
-        }
-
-        // Load the file
+    AccessController.doPrivileged(new PrivilegedAction() {
+      public Object run() {
         try {
-          System.load(temp.getAbsolutePath());
-        } finally {
-          temp.delete();
+          // Check if native lib exists in classpath.
+          System.loadLibrary(libName);
+        } catch (Throwable e) {
+          try {
+            // Create a temp dir
+            File temporaryDir = new File(System.getProperty("java.io.tmpdir"), "jhwbus-" + System.nanoTime());
+            if (!temporaryDir.mkdir()) throw new IOException("Failed to create temp directory " + temporaryDir.getName());
+            temporaryDir.deleteOnExit();
+            // Extract the file to the temp dir
+            File temp = new File(temporaryDir, libName);
+            try (InputStream is = I2CDevice.class.getResourceAsStream("/"+libName)) {
+              if (is == null){
+                temp.delete();
+                throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
+              }
+              Files.copy(is, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ie) {
+              temp.delete();
+              throw e;
+            } catch (Exception ne) {
+              temp.delete();
+              throw new FileNotFoundException("File " + libName + " was not found inside JAR.");
+            }
+            // Load the file
+            try {
+              System.load(temp.getAbsolutePath());
+            } finally {
+              temp.delete();
+            }
+          } catch (Exception ie) {
+            throw new RuntimeException(ie);
+          }
         }
-
-      } catch (Exception ie) {
-        throw new RuntimeException(ie);
+        return null;
       }
-    }
+    });
   }
 
   private native static int  I2COpen(String dev);
