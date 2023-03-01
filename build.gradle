@@ -64,6 +64,9 @@ model {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-Xlint:unchecked']
+}
 
 sourceSets.main.resources.srcDirs += ["$buildDir/libs/jhwbus/shared"]
 

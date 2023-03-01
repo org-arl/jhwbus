@@ -260,8 +260,8 @@ public final class I2CDevice {
 
     String libName = "libjhwbus" + libSuffix;
 
-    AccessController.doPrivileged(new PrivilegedAction() {
-      public Object run() {
+    AccessController.doPrivileged(new PrivilegedAction<Void>() {
+      public Void run() {
         try {
           // Check if native lib exists in classpath.
           System.loadLibrary(libName);
