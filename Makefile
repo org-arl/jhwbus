@@ -5,15 +5,21 @@ LIB_PATH = -I/usr/local/include -I${JAVA_HOME}/include
 
 UNAME_S := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 UNAME_M := $(shell uname -m | tr '[:upper:]' '[:lower:]')
+
+OS_VER := $(shell grep DISTRIB_RELEASE /etc/lsb-release | sed 's:.*=::')
 ifeq ($(UNAME_S),linux)
 	LIB_PATH += -I${JAVA_HOME}/include/linux
-	LFLAGS = -li2c
 	OUTFILE = libi2c-${UNAME_M}.so
+
+ifeq ($(OS_VER), "18.04")
+	LFLAGS = -li2c
+endif
+
 endif
 
 ifeq ($(UNAME_S),darwin)
 	LIB_PATH += -I${JAVA_HOME}/include/darwin
-	LFLAGS = 
+	LFLAGS =
 	OUTFILE = libi2c-${UNAME_M}.dylib
 endif
 
@@ -39,3 +45,6 @@ jar: all
 
 clean:
 	rm -rf $(BUILD)/*
+
+print:
+	echo "$(OS_VER)"
