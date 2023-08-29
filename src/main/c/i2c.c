@@ -3,8 +3,18 @@
 #include <jni.h>
 
 #ifdef __linux__
-    #include <linux/i2c-dev.h>
-    #include <i2c/smbus.h>
+
+#if defined __has_include
+#  if __has_include (<linux/i2c-dev.h>)
+#    include <linux/i2c-dev.h>
+#  endif
+#endif
+
+#if defined __has_include
+#  if __has_include (<i2c/smbus.h>)
+#    include <i2c/smbus.h>
+#  endif
+#endif
     #include <sys/ioctl.h>
     #include <fcntl.h>
     #include <unistd.h>
