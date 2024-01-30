@@ -8,6 +8,8 @@ version '1.1.1'
 
 defaultTasks 'jar'
 
+assert gradle.gradleVersion == '7.2'
+
 final File javaHome = new File(System.getProperty('java.home'))
 final String JNI_INCLUDE_DIR = new File(javaHome, 'include').isDirectory()
         ? new File(javaHome, 'include').getPath() // JDK
