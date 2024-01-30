@@ -10,70 +10,41 @@ defaultTasks 'jar'
 
 assert gradle.gradleVersion == '7.2'
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-Xlint:unchecked']
+}
+
 final File javaHome = new File(System.getProperty('java.home'))
 final String JNI_INCLUDE_DIR = new File(javaHome, 'include').isDirectory()
         ? new File(javaHome, 'include').getPath() // JDK
         : new File(javaHome, '../include').getPath() // for JRE inside JDK
 
-model {
-    platforms {
-        x86_64 {
-            architecture 'x86_64'
-        }
-        linux_aarch64 {
-            operatingSystem "linux"
-            architecture "arm64"
-        }
+def isMacOs = System.properties['os.name'].equals('Mac OS X')
+tasks.register('compileC', Exec) {
+    executable 'gcc'
+    args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+        "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+        '-I', '/usr/local/include',
+        '-I', JNI_INCLUDE_DIR
+    if (isMacOs) {
+        args '-I', JNI_INCLUDE_DIR + '/darwin',
+            '-dynamiclib'
     }
-
-    toolChains {
-        clang(Clang)
-        gcc(Gcc) {
-            target("linux_aarch64")
-            target("linux_arm-v7")
-        }
+    else {
+        args '-I', JNI_INCLUDE_DIR + '/linux'
+        args '-shared'
     }
-
-    components {
-        jhwbus(NativeLibrarySpec){
-            binaries.all {
-                if (System.properties['os.name'].equals('Mac OS X')){
-                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
-                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
-                            '-I', '/usr/local/include',
-                            '-I', JNI_INCLUDE_DIR,
-                            '-I', JNI_INCLUDE_DIR + '/darwin'
-
-                } else {
-                    cCompiler.args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
-                            "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
-                            '-I', '/usr/local/include',
-                            '-I', JNI_INCLUDE_DIR,
-                            '-I', JNI_INCLUDE_DIR + '/linux'
-                    linker.args "-li2c"
-                }
-
-            }
-            sources {
-                c {
-                    source {
-                        srcDir "src/main"
-                        include "**/*.c"
-                    }
-                }
-            }
-        }
-    }
+    inputs.files fileTree('src/main/c') { include '**/*.c' }
+    if (isMacOs) outputs.file project.layout.buildDirectory.file('libjhwbus.dylib')
+    else outputs.file project.layout.buildDirectory.file('libjhwbus.so')
+    args '-o', outputs.files.singleFile
+    args inputs.files
 }
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs += ['-Xlint:unchecked']
+tasks.register('createJhwbusResourceDir', Sync) {
+    from tasks.named('compileC')
+    into project.layout.buildDirectory.dir('jhwbus')
 }
-
-sourceSets.main.resources.srcDirs += ["$buildDir/libs/jhwbus/shared"]
-
-// Hack to add the dependency such that it works with source dependency/composite builds
-tasks.matching{ it.name.contains('jhwbusSharedLibrary') }.whenTaskAdded {tasks.processResources.dependsOn it }
+sourceSets.main.resources.srcDirs tasks.named('createJhwbusResourceDir')
 
 repositories {
     mavenCentral()
@@ -91,5 +62,4 @@ test {
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
     }
-    systemProperty "java.library.path", "${projectDir}/build/libs/jhwbus/shared"
 }
