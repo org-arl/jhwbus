@@ -39,6 +39,7 @@ tasks.register('compileC', Exec) {
     else outputs.file project.layout.buildDirectory.file('libjhwbus.so')
     args '-o', outputs.files.singleFile
     args inputs.files
+    if(!isMacOs) args '-li2c'
 }
 tasks.register('createJhwbusResourceDir', Sync) {
     from tasks.named('compileC')
