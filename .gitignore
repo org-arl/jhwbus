@@ -33,3 +33,4 @@ sftp-config.json
 
 #gradle
 .gradle
+gradle.properties

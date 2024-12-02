@@ -1,51 +1,14 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 plugins {
-    id 'c'
     id 'groovy'
+    id 'maven-publish'
 }
 
 group 'org.arl.jhwbus'
-version '1.1.1'
-
-defaultTasks 'jar'
+version '1.2.0'
 
 assert gradle.gradleVersion.startsWith('7.')
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs += ['-Xlint:unchecked']
-}
-
-final File javaHome = new File(System.getProperty('java.home'))
-final String JNI_INCLUDE_DIR = new File(javaHome, 'include').isDirectory()
-        ? new File(javaHome, 'include').getPath() // JDK
-        : new File(javaHome, '../include').getPath() // for JRE inside JDK
-
-def isMacOs = System.properties['os.name'].equals('Mac OS X')
-tasks.register('compileC', Exec) {
-    executable 'gcc'
-    args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
-        "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
-        '-I', '/usr/local/include',
-        '-I', JNI_INCLUDE_DIR
-    if (isMacOs) {
-        args '-I', JNI_INCLUDE_DIR + '/darwin',
-            '-dynamiclib'
-    }
-    else {
-        args '-I', JNI_INCLUDE_DIR + '/linux'
-        args '-shared'
-    }
-    inputs.files fileTree('src/main/c') { include '**/*.c' }
-    if (isMacOs) outputs.file project.layout.buildDirectory.file('libjhwbus.dylib')
-    else outputs.file project.layout.buildDirectory.file('libjhwbus.so')
-    args '-o', outputs.files.singleFile
-    args inputs.files
-    if(!isMacOs) args '-li2c'
-}
-tasks.register('createJhwbusResourceDir', Sync) {
-    from tasks.named('compileC')
-    into project.layout.buildDirectory.dir('jhwbus')
-}
-sourceSets.main.resources.srcDirs tasks.named('createJhwbusResourceDir')
 
 repositories {
     mavenCentral()
@@ -56,6 +19,156 @@ dependencies {
     testImplementation 'org.codehaus.groovy:groovy-all:3.0.8'
 }
 
+String OS_NAME = "??"
+if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    OS_NAME = "windows"
+} else if (Os.isFamily(Os.FAMILY_MAC)) {
+    OS_NAME = "macos"
+} else if (Os.isFamily(Os.FAMILY_UNIX)) {
+    OS_NAME = "linux"
+}
+
+if (OS_NAME == "??") {
+    throw new GradleException("Unsupported OS: ${System.getProperty('os.name')}")
+}
+
+if (OS_NAME == 'linux'){
+    println "Building directly on Linux..."
+    defaultTasks 'jar'
+} else{
+    println "Building in a container..."
+    defaultTasks 'containerJar'
+}
+
+def JAVA_HOME = new File(System.getProperty('java.home'))
+def JNI_INCLUDE_DIR = new File(JAVA_HOME, 'include').isDirectory()
+    ? new File(JAVA_HOME, 'include').getPath() // JDK
+    : new File(JAVA_HOME, '../include').getPath() // for JRE inside JDK
+
+
+publishing {
+    publications {
+        // publish to maven only the jar file with `arch` classifier
+        maven(MavenPublication) {
+            artifact file("$buildDir/libs/jhwbus-${version}.jar")
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages-jhwbus"
+            url = uri("https://maven.pkg.github.com/org-arl/jhwbus")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+                password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:unchecked']
+}
+
+tasks.register('compileC', Exec) {
+    description = 'Compile C code'
+    outputs.file project.layout.buildDirectory.file('libjhwbus.so')
+    executable 'gcc'
+    args "-std=c99", "-O2", "-Wall", "-Wextra", "-Werror",
+        "-Wno-unused-parameter", "-D_XOPEN_SOURCE=600", "-fPIC",
+        '-I', '/usr/local/include',
+        '-I', JNI_INCLUDE_DIR
+    args '-I', JNI_INCLUDE_DIR + '/linux'
+    args '-shared'
+    inputs.files fileTree('src/main/c') { include '**/*.c' }
+    args '-o', outputs.files.singleFile
+    args inputs.files
+    args '-li2c'
+
+}
+
+tasks.register('createJhwbusResourceDir', Sync) {
+    description = 'Create jhwbus resource directory'
+    from tasks.named('compileC')
+    into project.layout.buildDirectory.dir('jhwbus')
+}
+
+sourceSets.main.resources.srcDirs tasks.named('createJhwbusResourceDir')
+
+jar {
+    enabled = OS_NAME == 'linux'
+}
+
+String image =  project.properties['dockerImage'] ?: "ghcr.io/org-arl/jhwbus:latest"
+String dockerContext = project.properties['dockerContext'] ?: 'colima'
+tasks.register('buildImage'){
+    description = 'Builds a docker image'
+    doLast {
+        exec {
+            commandLine 'docker', 'build', '-t', image, '.'
+        }
+    }
+}
+
+tasks.register('pushImage'){
+    description = 'Pushes the docker image to GitHub Packages'
+    dependsOn 'buildImage'
+    doLast {
+        exec {
+            commandLine 'docker', 'push', image
+        }
+    }
+}
+
+project.ext.container = null
+tasks.register('startContainer') {
+    description = 'Starts a container'
+    doLast {
+        if (project.ext.container instanceof String) return
+
+        // start a container using docker cli and exec
+        println "Starting a new container ($image)... "
+        project.ext.container = execWithOutput('docker','--context', dockerContext , 'run', '-d', '-v', "$rootDir:/home/jhwbus", image, 'sleep', 'infinity')
+    }
+}
+
+tasks.register('stopContainer') {
+    description = 'Stops the container'
+    doLast {
+        if (!(project.ext.container instanceof String)) return
+        // stop the container using docker cli and exec
+        execWithOutput('docker', '--context', dockerContext , 'stop', project.ext.container as String)
+        println "Stopped the container"
+        project.ext.container = null
+    }
+}
+
+tasks.register('containerJar') {
+    description = 'Builds jhwbus in a container'
+    dependsOn tasks.startContainer
+    finalizedBy tasks.stopContainer
+    doLast {
+        def containerId = project.ext.container
+        if (!containerId || !(containerId instanceof String)) {
+            throw new GradleException("No known container!")
+        }
+        // check if the container is running using docker cli
+        def running = execWithOutput('docker', '--context', dockerContext, 'inspect', '-f', '{{.State.Running}}', containerId as String)
+        if (running != 'true') {
+            throw new GradleException("Container is not running!")
+        }
+        // exec the build command in the container
+        println "Running build in a container : ${containerId.take(12)}"
+        def res = exec {
+            commandLine 'docker', '--context', dockerContext , 'exec', containerId, '/bin/bash', '-c', "./gradlew -Dorg.gradle.welcome=never jar"
+            ignoreExitValue true
+        }
+        if (res.exitValue != 0) {
+            throw new GradleException("Container build failed!")
+        }
+    }
+    outputs.file file("$buildDir/libs/jhwbus-${version}.jar")
+}
+
 test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
@@ -63,4 +176,21 @@ test {
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
     }
+}
+
+//// Internal helpers
+
+def execWithOutput(String... command) {
+    def stdout = new ByteArrayOutputStream()
+    def stderr = new ByteArrayOutputStream()
+    def res = exec {
+        commandLine command
+        standardOutput = stdout
+        errorOutput = stderr
+        ignoreExitValue true
+    }
+    if (res.exitValue != 0) {
+        throw new GradleException("Failed to execute command : ${command.join(' ')} \n ${stderr.toString()}")
+    }
+    return stdout.toString().trim()
 }
