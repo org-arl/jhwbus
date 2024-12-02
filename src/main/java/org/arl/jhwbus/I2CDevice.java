@@ -253,13 +253,11 @@ public final class I2CDevice {
   // JNI interface
 
   static {
-    String libSuffix = "";
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.contains("linux")) libSuffix += ".so";
-    else if (os.contains("mac")) libSuffix += ".dylib";
-
-    String libName = "libjhwbus" + libSuffix;
-
+    if (!os.contains("linux")){
+      throw new RuntimeException("This library is only supported on Linux");
+    }
+    String libName = "libjhwbus.so";
     AccessController.doPrivileged(new PrivilegedAction<Void>() {
       public Void run() {
         try {

@@ -1,51 +1,56 @@
 # jhwbus
-Java hardware bus access
+Java hardware bus access for Linux
 
-A simple, thin JNI based Java library to enable accessing hardware buses (for eg. I2C) from Java on Linux. Bundles the native library into the jar and dynamically loads it at runtime.
+A simple, thin JNI based Java library to access simple hardware buses (for e.g. I2C) from Java on Linux. The library jar brings along the native library (`libjhwbus.so`) and dynamically loads it at runtime. Since Linux only supports simple hardware buses directly on ARM, this library is **only supported for Linux on ARM machines**.
 
-Currently supports the following hardware:
+Currently, supports the following hardware buses:
 
-- I2C/SMBUS
-
-Currently supports the following operating systems:
-
-- Linux
-- macOS (dummy support for testing only)
+- I2C/SMBUS - [Linux I2C](https://www.kernel.org/doc/html/latest/i2c/index.html)
 
 ## Building
 
+The JNI library is written in C and uses the `i2c-dev` interface to access the I2C bus. The library is built using the `gcc` compiler.
+
+The default `./gradlew` build task will build and package the library into a jar file.
+
+On a native Linux OS (running on an ARM machine), the build task can be run directly. On non-Linux OS, the build task can be run in a containerized environment using Docker.
+
+The Dockerfile used for the containerized build is [available here](Dockerfile)
+
 ### Requirements
 
-- Java
-- gcc
-- gradle
+#### On Linux
 
-Ensure that the environment variable `JAVA_HOME` is defined and points the Java installation.
+- Java JDK8
+- gcc
+- [libi2c-dev](https://www.kernel.org/doc/html/latest/i2c/dev-interface.html) - `sudo apt-get install libi2c-dev`
+
+> Ensure that the environment variable `JAVA_HOME` is defined and points the Java installation.
+
+#### On non-Linux (macos)
+
+- Container runtime like [Docker Desktop](https://www.docker.com/products/docker-desktop) or [Colima](https://github.com/abiosoft/colima)
+
+Since we need to build the native library for ARM architecture, the container runtime has to either run on an ARM machine or support ARM emulation.
 
 ### Commands
 
-`gradle` : Generates a jar with the native library included in `build/libs`
+`./gradlew` : Generates a jar with the native library included in `build/libs`
 
 ### Using
 
-Since the library is very platform (OS and architecture) specific, it is recommended that you add it as [gradle source dependency](https://blog.gradle.org/introducing-source-dependencies) instead of a normal gradle dependency, so that it gets compiled on your platform.
-
-In `settings.gradle` : 
+The library is published to GitHub Packages and can be included in the project using the following `build.gradle` configuration:
 
 ```groovy
-sourceControl {
-  gitRepository("https://github.com/org-arl/jhwbus.git") {
-    producesModule("org.arl.jhwbus:jhwbus")
-  }
-}
-```
-
-In `build.gradle` : 
-```groovy
- implementation('org.arl.jhwbus:jhwbus:1.1.1') {
-    version {
-        branch = 'master'
+repositories {
+    maven {
+        name = "GitHubPackages-jhwbus"
+        url = uri("https://maven.pkg.github.com/jhwbus/jhwbus")
     }
+}
+
+dependencies {
+    implementation 'io.github.jhwbus:jhwbus:1.2.0'
 }
 ```
 
