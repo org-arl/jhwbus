@@ -30,12 +30,15 @@ The Dockerfile used for the containerized build is [available here](Dockerfile)
 #### On non-Linux (macos)
 
 - Container runtime like [Docker Desktop](https://www.docker.com/products/docker-desktop) or [Colima](https://github.com/abiosoft/colima)
+* [docker cli](https://www.docker.com/products/cli/) - on macos can be installed using `brew install docker`
 
 Since we need to build the native library for ARM architecture, the container runtime has to either run on an ARM machine or support ARM emulation.
 
 ### Commands
 
 `./gradlew` : Generates a jar with the native library included in `build/libs`
+
+The default [docker-cli context](https://docs.docker.com/engine/manage-resources/contexts/) used is [colima](https://github.com/abiosoft/colima). However, this can be overridden using the `-PdockerContext=` CLI flag.
 
 ### Using
 
